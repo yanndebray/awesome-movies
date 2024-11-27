@@ -6,6 +6,9 @@ from openai import OpenAI
 import urllib.request
 from pathlib import Path
 
+# Load environment variables
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
 # Page config
 st.set_page_config(
     page_title="Movie Search Engine",
@@ -13,28 +16,41 @@ st.set_page_config(
     layout="wide"
 )
 
-# Initialize OpenAI client and load FAISS index
-@st.cache_resource
-def init_search():
-    """Initialize search resources, downloading files if needed"""
-    # S3 URLs for data files
+def download_files():
+    """Download necessary files from S3 if they don't exist."""
     s3_urls = {
         "movie_data.pkl": "https://programming-gpts.s3.us-east-1.amazonaws.com/movie_data.pkl",
         "movie_embeddings.faiss": "https://programming-gpts.s3.us-east-1.amazonaws.com/movie_embeddings.faiss"
     }
     
-    # Download files if they don't exist
     for filename, url in s3_urls.items():
-        if not Path(filename).exists():
-            st.toast(f"Downloading {filename}...")
-            urllib.request.urlretrieve(url, filename)
-            st.toast(f"Downloaded {filename}")
-    
-    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+        file_path = Path(filename)
+        if not file_path.exists():
+            try:
+                st.toast(f"Downloading {filename}...")
+                urllib.request.urlretrieve(url, filename)
+                st.toast(f"Downloaded {filename}")
+            except Exception as e:
+                st.error(f"Error downloading {filename}: {str(e)}")
+                raise
+
+        # Verify file exists and has content
+        if not file_path.exists():
+            raise FileNotFoundError(f"File {filename} does not exist after download attempt")
+        if file_path.stat().st_size == 0:
+            raise ValueError(f"File {filename} is empty after download")
+        
+        st.toast(f"File {filename} exists with size: {file_path.stat().st_size} bytes")
+
+@st.cache_resource
+def init_search():
+    """Initialize search resources."""
     index = faiss.read_index("movie_embeddings.faiss")
     df = pd.read_pickle("movie_data.pkl")
     return client, index, df
 
+# Call download_files outside of the cached function
+download_files()
 client, index, df = init_search()
 
 def search_movies(query: str, search_type: str, k: int = 12) -> list:
