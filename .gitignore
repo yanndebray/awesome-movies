@@ -3,3 +3,4 @@ movie_data.pkl
 .env
 env/
 awesome-moviate/
+.streamlit/

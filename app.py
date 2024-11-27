@@ -1,15 +1,10 @@
 import streamlit as st
-from dotenv import load_dotenv
-import os
 import faiss
 import pandas as pd
 import numpy as np
 from openai import OpenAI
 import urllib.request
 from pathlib import Path
-
-# Load environment variables
-load_dotenv()
 
 # Page config
 st.set_page_config(
@@ -35,7 +30,7 @@ def init_search():
             urllib.request.urlretrieve(url, filename)
             st.toast(f"Downloaded {filename}")
     
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
     index = faiss.read_index("movie_embeddings.faiss")
     df = pd.read_pickle("movie_data.pkl")
     return client, index, df
