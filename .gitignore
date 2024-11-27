@@ -1,0 +1,5 @@
+movie_embeddings.faiss
+movie_data.pkl
+.env
+env/
+awesome-moviate/
