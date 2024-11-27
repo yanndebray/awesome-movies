@@ -5,6 +5,8 @@ import faiss
 import pandas as pd
 import numpy as np
 from openai import OpenAI
+import urllib.request
+from pathlib import Path
 
 # Load environment variables
 load_dotenv()
@@ -19,6 +21,20 @@ st.set_page_config(
 # Initialize OpenAI client and load FAISS index
 @st.cache_resource
 def init_search():
+    """Initialize search resources, downloading files if needed"""
+    # S3 URLs for data files
+    s3_urls = {
+        "movie_data.pkl": "https://programming-gpts.s3.us-east-1.amazonaws.com/movie_data.pkl",
+        "movie_embeddings.faiss": "https://programming-gpts.s3.us-east-1.amazonaws.com/movie_embeddings.faiss"
+    }
+    
+    # Download files if they don't exist
+    for filename, url in s3_urls.items():
+        if not Path(filename).exists():
+            st.toast(f"Downloading {filename}...")
+            urllib.request.urlretrieve(url, filename)
+            st.toast(f"Downloaded {filename}")
+    
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     index = faiss.read_index("movie_embeddings.faiss")
     df = pd.read_pickle("movie_data.pkl")

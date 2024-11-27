@@ -1,5 +1,5 @@
 streamlit
-weaviate-client
+# weaviate-client
 python-dotenv
 pandas
 openai 
