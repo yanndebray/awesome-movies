@@ -40,7 +40,7 @@ def download_files():
         if file_path.stat().st_size == 0:
             raise ValueError(f"File {filename} is empty after download")
         
-        st.toast(f"File {filename} exists with size: {file_path.stat().st_size} bytes")
+        # st.toast(f"File {filename} exists with size: {file_path.stat().st_size} bytes")
 
 @st.cache_resource
 def init_search():
