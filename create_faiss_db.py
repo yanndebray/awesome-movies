@@ -6,13 +6,40 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from tqdm import tqdm
 import pickle
-
+import urllib.request
 # Load environment variables
 load_dotenv()
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
+# Create data directory if it doesn't exist
+os.makedirs("data", exist_ok=True)
+
+# Download movie_data.csv and wiki_movie_plots_deduped.csv from S3 if they don't exist
+s3_urls = {
+    "movie_data.csv": "https://programming-gpts.s3.us-east-1.amazonaws.com/movie_data.csv",
+    "wiki_movie_plots_deduped.csv": "https://programming-gpts.s3.us-east-1.amazonaws.com/wiki_movie_plots_deduped.csv"
+}
+
+for filename, url in s3_urls.items():
+    file_path = os.path.join("data", filename)
+    if not os.path.exists(file_path):
+        try:
+            print(f"Downloading {filename}...")
+            urllib.request.urlretrieve(url, file_path)
+            print(f"Downloaded {filename}")
+        except Exception as e:
+            print(f"Error downloading {filename}: {str(e)}")
+            raise
+
+    # Verify file exists and has content
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File {filename} does not exist after download attempt")
+    if os.path.getsize(file_path) == 0:
+        raise ValueError(f"File {filename} is empty after download")
+
+
 # Load the same data as in add_data.py
-df = pd.read_csv("awesome-moviate/data/movie_data.csv", 
+df = pd.read_csv("data/movie_data.csv", 
                 usecols=['id', 'Name', 'PosterLink', 'Genres', 'Actors', 
                         'Director','Description', 'DatePublished', 'Keywords'], 
                 parse_dates=["DatePublished"])
@@ -22,7 +49,7 @@ df.drop(["DatePublished"], axis=1, inplace=True)
 df = df[df.year > 1970]
 
 # Load and merge plot data
-plots = pd.read_csv("awesome-moviate/data/wiki_movie_plots_deduped.csv")
+plots = pd.read_csv("data/wiki_movie_plots_deduped.csv")
 plots = plots[plots['Release Year'] > 1970]
 plots = plots[plots.duplicated(subset=['Title', 'Release Year', 'Plot']) == False]
 plots = plots[plots.duplicated(subset=['Title', 'Release Year']) == False]
